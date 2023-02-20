@@ -2,14 +2,25 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+
+/*-------------------------------------------------------------
+
+　　　　　　　　　　　2023/02/13
+　　　　　　　　　　　森山和哉著
+                    　衝突判定
+                    
+-------------------------------------------------------------*/
+
+
 public class CollisionScript : MonoBehaviour
 {
 
     private BoxCollider2D _Collider;
     private Transform _tr;
 
-    [SerializeField, Header("衝突判定の距離"), Range(0.5f, 5f)]
+    [SerializeField, Header("衝突判定の距離"), Range(0.001f, 5f)]
     private float _RayRange = 0.5f;
+
 
     private float _HalfScaleX = default;
     private float _HalfScaleY = default;
@@ -24,13 +35,13 @@ public class CollisionScript : MonoBehaviour
 
     private void Start()
     {
-        //ポジション取得
+        // ポジション取得
         _tr = gameObject.transform;
 
-        //コライダー取得
+        // コライダー取得
         _Collider = GetComponent<BoxCollider2D>();
 
-        //コライダーの半分を取得
+        // コライダーの半分を取得
         _HalfScaleX = _Collider.transform.localScale.x / 2;
         _HalfScaleY = _Collider.transform.localScale.y / 2;
 
@@ -44,74 +55,140 @@ public class CollisionScript : MonoBehaviour
     protected void AllCollisionCheck()
     {
 
-        //コライダーの右上のポイント設定
+        // コライダーの右上のポイント設定
         _ColliderRightPoint = new Vector2(_tr.localPosition.x + _HalfScaleX, _tr.localPosition.y + _HalfScaleY);
 
-        //コライダーの左下のポイント設定
+        // コライダーの左下のポイント設定
         _ColliderLeftPoint = new Vector2(_tr.localPosition.x - _HalfScaleX, _tr.localPosition.y - _HalfScaleY);
-
 
         RightWallCollision();
         LeftWallCollision();
-
-    }  
+        GroundCollision();
+        RoofCollision();
+    }
 
     /// <summary>
     /// 右の壁の衝突判定
     /// </summary>
     protected void RightWallCollision()
     {
-        print("接触判定右");
-        Debug.DrawRay(new Vector2(_ColliderRightPoint.x, transform.position.y), Vector2.right * _RayRange , Color.red);
+        Debug.DrawRay(new Vector2(_ColliderRightPoint.x, transform.position.y), Vector2.right * _RayRange, Color.red);
 
-        //衝突したものを取得するためのRay出す
-        RaycastHit2D _HitObject = Physics2D.Raycast(new Vector2(_ColliderRightPoint.x, transform.position.y), Vector2.right, _RayRange);
-
-        //Rayに触れたオブジェクトのTagが("Ground")だったら
-        if (_HitObject.collider.CompareTag("Ground"))
+        // 衝突したものを取得するためのRay出す
+        RaycastHit2D hitObject = Physics2D.Raycast(new Vector2(_ColliderRightPoint.x, transform.position.y), Vector2.right, _RayRange);
+       
+        // 何も衝突していない、もしくは衝突したもののtagがUntaggedだった時
+        if (hitObject.collider == null || hitObject.collider.CompareTag("Untagged"))
         {
-            //衝突したポイントにポジション調整
-            gameObject.transform.position = new Vector2(gameObject.transform.position.x, gameObject.transform.position.y);
+            _isRightWallTouch = false;
+            return;
+        }
 
-            //壁との接触判定をtrueにする
+        // Rayに触れたオブジェクトのTagが("Ground")だったら
+        else if (hitObject.collider.CompareTag("Ground"))
+        {
+
+            // 衝突したポイントにポジション調整 (衝突したオブジェクトのポジション　-　衝突したオブジェクトのx軸の大きさ, 自分自身のy軸)
+            gameObject.transform.position = new Vector2(hitObject.transform.position.x - hitObject.transform.localScale.x, gameObject.transform.position.y);
+
+            // 壁との接触判定をtrueにする
             _isRightWallTouch = true;
             return;
         }
 
-        //衝突していなかったら
-        else 
-        {
-            //接触判定falseにする
-            _isRightWallTouch = false;
-        }
     }
 
     /// <summary>
-    /// 左の壁の接触判定
+    /// 左の壁の衝突判定
     /// </summary>
     protected void LeftWallCollision()
     {
-        print("接触判定左");
-        Debug.DrawRay(new Vector2(_ColliderRightPoint.x, transform.position.y), Vector2.left * _RayRange, Color.red);
+        Debug.DrawRay(new Vector2(_ColliderLeftPoint.x, transform.position.y), Vector2.left * _RayRange, Color.red);
 
-        //衝突したものを取得するためのRay出す
-        RaycastHit2D _HitObject = Physics2D.Raycast(new Vector2(_ColliderLeftPoint.x, transform.position.y), Vector2.left, _RayRange);
+        // 衝突したものを取得するためのRay出す
+        RaycastHit2D hitObject = Physics2D.Raycast(new Vector2(_ColliderLeftPoint.x, transform.position.y), Vector2.left, _RayRange);
 
-        //Rayに触れたオブジェクトのTagが("Ground")だったら
-        if (_HitObject.collider.CompareTag("Ground"))
+        // 何も衝突していない、もしくは衝突したもののtagがUntaggedだった時
+        if (hitObject.collider == null || hitObject.collider.CompareTag ("Untagged"))
         {
-            //衝突したポイントにポジション調整
-            gameObject.transform.position = new Vector2(gameObject.transform.position.x, gameObject.transform.position.y);
+            _isLeftWallTouch = false;
+            return;
+        }
 
-            //壁との接触判定をtrueにする
+        // Rayに触れたオブジェクトのTagが("Ground")だったら
+        else if (hitObject.collider.CompareTag("Ground"))
+        {
+            // 衝突したポイントにポジション調整 (衝突したオブジェクトのポジション　+　衝突したオブジェクトのx軸の大きさ, 自分自身のy軸)
+            gameObject.transform.position = new Vector2(hitObject.transform.position.x + hitObject.transform.localScale.x, gameObject.transform.position.y);
+
+            // 壁との接触判定をtrueにする
             _isLeftWallTouch = true;
             return;
         }
 
-        else
+    }
+
+    /// <summary>
+    /// 地面との衝突判定
+    /// </summary>
+    protected void GroundCollision()
+    {
+        Debug.DrawRay(new Vector2(transform.position.x, _ColliderLeftPoint.y), Vector2.down * _RayRange, Color.red);
+
+        // 衝突したものを取得するためのRay出す
+        RaycastHit2D hitObject = Physics2D.Raycast(new Vector2(transform.position.x, _ColliderLeftPoint.y), Vector2.down, _RayRange);
+
+
+        // 何も衝突していない、もしくは衝突したもののtagがUntaggedだった時
+        if (hitObject.collider == null || hitObject.collider.CompareTag("Untagged"))
         {
-            _isLeftWallTouch = false;
+            _isGroundTouch = false;
+            return;
+        }
+
+        // Rayに触れたオブジェクトのTagが("Ground")だったら
+        else if (hitObject.collider.CompareTag("Ground"))
+        {
+            // 衝突したポイントにポジション調整
+            gameObject.transform.position = new Vector2(gameObject.transform.position.x, hitObject.transform.position.y + hitObject.transform.localScale.y);
+
+            // 壁との接触判定をtrueにする
+            _isGroundTouch = true;
+            return;
+        }
+    }
+
+    /// <summary>
+    /// 天井との衝突判定
+    /// </summary>
+    protected void RoofCollision()
+    {
+        Debug.DrawRay(new Vector2(transform.position.x, _ColliderRightPoint.y), Vector2.up * _RayRange, Color.red);
+
+        // 衝突したものを取得するためのRay出す
+        RaycastHit2D hitObject = Physics2D.Raycast(new Vector2(transform.position.x, _ColliderRightPoint.y), Vector2.up, _RayRange);
+
+
+        // 何も衝突していない、もしくは衝突したもののtagがUntaggedだった時
+        if (hitObject.collider == null || hitObject.collider.CompareTag("Untagged"))
+        {
+            print("何も衝突してない");
+            _isRoofTouch = false;
+            return;
+        }
+
+        // Rayに触れたオブジェクトのTagが("Ground")で、天井に接触していなかったらら
+        else if (hitObject.collider.CompareTag("Ground") && _isRoofTouch == false)
+        {
+            print("衝突してるよ");
+            // 衝突したポイントにポジション調整
+            gameObject.transform.position = new Vector2(gameObject.transform.position.x, hitObject.transform.position.y - hitObject.transform.localScale.y);
+
+            // 壁との接触判定をtrueにする
+            _isRoofTouch = true;
+            return;
         }
 
     }
+
 }
